@@ -541,6 +541,25 @@
 					font-size: 1.5em;
 				}
 
+		ul.headericons {
+			cursor: default;
+			list-style: none;
+			padding-left: 0;
+		}
+
+			ul.headericons li {
+				display: inline-block;
+				padding: 0 0.05em 0 0;
+			}
+
+				ul.headericons li:last-child {
+					padding-right: 0;
+				}
+
+				ul.headericons li .icon:before {
+					font-size: 1.5em;
+				}
+
 		ul.actions {
 			cursor: default;
 			list-style: none;
@@ -908,7 +927,7 @@
 		}
 
 			#header h1 a {
-				font-size: 1.25em;
+				font-size: 1.75em;
 			}
 
 		#header nav {
@@ -978,7 +997,7 @@
 
 	#banner {
 		background-color: #666666;
-		background-image: url("../Images/banner.jpg");
+		background-image: url("../Images/banner2.jpeg");
 		background-size: cover;
 		background-position: center center;
 		background-repeat: no-repeat;
