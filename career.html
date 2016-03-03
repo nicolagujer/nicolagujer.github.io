@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+      <meta charset="utf-8">
+      <meta name="description" content="Career progression of males and females within science faculties of NZ universities">
+      <meta name="keywords" content="NZ, New Zealand, academic, university, gender, female, STEM, male">
+      <link rel="shortcut icon" href="../Images/tepunaha.png"> 
+      <title>University Job Progression</title>
+  </head>
+
+  <body>
+    <style id="jsbin-css">
+      
+      svg {border: 1px solid #ccc;}
+
+      .axis line,
+      .axis path {
+        shape-rendering: crispEdges;
+        fill: transparent;
+        stroke: #555;
+      }
+      .axis text {
+        font-size: 11px;
+      }
+
+      .bar {
+        fill-opacity: 0.5;
+      }
+      .bar.left {
+        fill: steelblue;
+      }
+      .bar.right {
+        fill: firebrick;
+      }
+
+      body {
+      font-family: Lato, Arial;
+      }
+      
+      select {
+        cursor: pointer;
+        display: inline-block;
+        position: relative;
+        font-size: 13px;
+        color: #fff;
+        background-color: #3399ff;
+        border-color: #003380;
+        width: 300px;
+        height: 30px;
+      }
+
+      .d3-tip {
+        line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+      }
+
+      /* Creates a small triangle extender for the tooltip */
+      .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+      }
+
+      /* Style northward tooltips differently */
+      .d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+      }
+    </style>
+
+    <p>Select department: <select id="opts">
+      <option hidden>-- Select University Department --</option>
+      <optgroup label="University of Auckland">
+        <option value="UoABiology">Biology</option>
+        <option value="UoAChemistry">Chemistry</option> 
+        <option value="UoACompSci">Computer Science</option>
+        <option value="UoAEnviron">Environmental Science</option>
+        <option value="UoAMarine">Marine Science</option>
+        <option value="UoAMaths">Mathematics</option>
+        <option value="UoAPhysics">Physics</option>
+        <option value="UoAPsychology">Psychology</option>
+        <option value="UoASports">Sports Science</option>
+        <option value="UoAStats">Statistics</option>
+      </optgroup>
+      <optgroup label="University of Otago">
+        <option value="UoOBotany">Botany</option>
+        <option value="UoOChemistry">Chemistry</option> 
+        <option value="UoOCompSci">Computer Science</option>
+        <option value="UoOGeo">Geology</option>
+        <option value="UoOHuman">Human Nutrition</option>
+        <option value="UoOMarine">Marine Science</option>
+        <option value="UoOMaths">Mathematics and Statistics</option>
+        <option value="UoOPhysics">Physics</option>
+        <option value="UoOPsychology">Psychology</option>
+        <option value="UoOSports">Sports Science</option>
+        <option value="UoOZoo">Zoology</option>
+      </optgroup>
+      <optgroup label="University of Waikato">
+        <option value="UoWBiology">Biology</option>
+        <option value="UoWChemistry">Chemistry</option> 
+        <option value="UoWCompSci">Computer Science</option>
+        <option value="UoWEarth">Earth Science</option>
+        <option value="UoWEngin">Engineering</option>
+        <option value="UoWMaths">Mathematics</option>
+        <option value="UoWStats">Statistics</option>
+      </optgroup>
+      <optgroup label="Victoria University of Wellington">
+        <option value="VuWBiology">Biology</option>
+        <option value="VuWChemistry">Chemistry</option> 
+        <option value="VuWEarth">Earth Science</option>
+        <option value="VuWMaths">Mathematics</option>
+        <option value="VuWPhysics">Physics</option>
+        <option value="VuWPsychology">Psychology</option>
+        <option value="VuWStats">Statistics</option>
+      </optgroup>
+    </select></p>
+
+    <p>
+      <input name="mode" type="radio" value="raw" id="raw" ><label for="data-raw"> Raw data</label>
+      <input name="mode" type="radio" value="percent" id="percent" ><label for="data-percent"> Percentage</label>
+    </p>
+
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script id="jsbin-javascript">
+
+    var tipM = d3.tip()
+      .attr('class', 'd3-tip')
+      .offset([-10, 0])
+      .html(function(d) {
+        return "<strong>"+ d.male + "</strong> <span style='color:white'></span>";
+      })
+
+    var tipF = d3.tip()
+      .attr('class', 'd3-tip')
+      .offset([-10, 0])
+      .html(function(d) {
+        return "<strong>"+ d.female + "</strong> <span style='color:white'></span>";
+      })
+
+    var tipMpercent = d3.tip()
+      .attr('class', 'd3-tip')
+      .offset([-10, 0])
+      .html(function(d) {
+        return "<strong>"+ ((d.male/Math.max(d.male+d.female,0.1))*100).toFixed(0) + " %" + "</strong> <span style='color:white'></span>";
+      })
+
+    var tipFpercent = d3.tip()
+      .attr('class', 'd3-tip')
+      .offset([-10, 0])
+      .html(function(d) {
+        return "<strong>"+ ((d.female/Math.max(d.male+d.female,0.1))*100).toFixed(0) + " %" + "</strong> <span style='color:white'></span>";
+      })
+
+    // SET UP DIMENSIONS
+    var w = 800,
+        h = 300;
+        
+    // margin.middle is distance from center line to each y-axis
+    var margin = {
+      top: 40,
+      right: 20,
+      bottom: 24,
+      left: 20,
+      middle: 58
+    };
+        
+    // the width of each side of the chart
+    var regionWidth = w/2 - margin.middle;
+
+    // these are the x-coordinates of the y-axes
+    var pointA = regionWidth,
+        pointB = w - regionWidth;
+
+    // Data
+      // University of Auckland
+      var UoABiology = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 21, female: 9},
+        {group: 'Associate Professor', male: 16, female: 7},
+        {group: 'Professor', male: 19, female: 4},
+        {group: 'Emeritus Professor', male: 1, female: 0}
+      ];
+      var UoAChemistry = [
+        {group: 'Research Fellow', male: 2, female: 1},
+        {group: 'Lecturer', male: 11, female: 1},
+        {group: 'Associate Professor', male: 6, female: 1},
+        {group: 'Professor', male: 9, female: 4},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+       var UoACompSci = [
+        {group: 'Research Fellow', male: 4, female: 1},
+        {group: 'Lecturer', male: 17, female: 2},
+        {group: 'Associate Professor', male: 5, female: 1},
+        {group: 'Professor', male: 12, female: 1},
+        {group: 'Emeritus Professor', male: 1, female: 0}
+      ];
+      var UoAEnviron = [
+        {group: 'Research Fellow', male: 0, female: 1},
+        {group: 'Lecturer', male: 15, female: 12},
+        {group: 'Associate Professor', male: 9, female: 1},
+        {group: 'Professor', male: 9, female: 0},
+        {group: 'Emeritus Professor', male: 1, female: 1}
+      ];
+      var UoAMarine = [
+        {group: 'Research Fellow', male: 0, female: 2},
+        {group: 'Lecturer', male: 6, female: 1},
+        {group: 'Associate Professor', male: 2, female: 0},
+        {group: 'Professor', male: 3, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoAMaths = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 9, female: 4},
+        {group: 'Associate Professor', male: 6, female: 1},
+        {group: 'Professor', male: 10, female: 1},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoAPhysics = [
+        {group: 'Research Fellow', male: 8, female: 0},
+        {group: 'Lecturer', male: 7, female: 2},
+        {group: 'Associate Professor', male: 9, female: 0},
+        {group: 'Professor', male: 8, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoAPsychology = [
+        {group: 'Research Fellow', male: 1, female: 3},
+        {group: 'Lecturer', male: 6, female: 14},
+        {group: 'Associate Professor', male: 8, female: 8},
+        {group: 'Professor', male: 5, female: 3},
+        {group: 'Emeritus Professor', male: 3, female: 0}
+      ];
+      var UoASports = [
+        {group: 'Research Fellow', male: 2, female: 0},
+        {group: 'Lecturer', male: 5, female: 0},
+        {group: 'Associate Professor', male: 1, female: 0},
+        {group: 'Professor', male: 2, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoAStats = [
+        {group: 'Research Fellow', male: 5, female: 3},
+        {group: 'Lecturer', male: 14, female: 3},
+        {group: 'Associate Professor', male: 5, female: 4},
+        {group: 'Professor', male: 7, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+    
+      // University of Otago
+      var UoOBotany = [
+        {group: 'Research Fellow', male: 0, female: 1},
+        {group: 'Lecturer', male: 2, female: 2},
+        {group: 'Associate Professor', male: 1, female: 0},
+        {group: 'Professor', male: 1, female: 1},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+      var UoOChemistry = [
+        {group: 'Research Fellow', male: 9, female: 5},
+        {group: 'Lecturer', male: 7, female: 2},
+        {group: 'Associate Professor', male: 4, female: 2},
+        {group: 'Professor', male: 5, female: 1},
+        {group: 'Emeritus Professor', male: 3, female: 0}
+      ];
+      var UoOCompSci = [
+        {group: 'Research Fellow', male: 3, female: 0},
+        {group: 'Lecturer', male: 5, female: 2},
+        {group: 'Associate Professor', male: 4, female: 0},
+        {group: 'Professor', male: 2, female: 0},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+      var UoOGeo = [
+        {group: 'Research Fellow', male: 3, female: 1},
+        {group: 'Lecturer', male: 7, female: 2},
+        {group: 'Associate Professor', male: 2, female: 1},
+        {group: 'Professor', male: 4, female: 0},
+        {group: 'Emeritus Professor', male: 3, female: 0}
+      ];
+      var UoOHuman = [
+        {group: 'Research Fellow', male: 0, female: 6},
+        {group: 'Lecturer', male: 1, female: 11},
+        {group: 'Associate Professor', male: 0, female: 3},
+        {group: 'Professor', male: 3, female: 1},
+        {group: 'Emeritus Professor', male: 0, female: 1}
+      ];
+      var UoOMarine = [
+        {group: 'Research Fellow', male: 0, female: 2},
+        {group: 'Lecturer', male: 4, female: 2},
+        {group: 'Associate Professor', male: 2, female: 1},
+        {group: 'Professor', male: 3, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoOMaths = [
+        {group: 'Research Fellow', male: 3, female: 2},
+        {group: 'Lecturer', male: 9, female: 3},
+        {group: 'Associate Professor', male: 3, female: 0},
+        {group: 'Professor', male: 6, female: 1},
+        {group: 'Emeritus Professor', male: 1, female: 0}
+      ];
+      var UoOPhysics = [
+        {group: 'Research Fellow', male: 13, female: 2},
+        {group: 'Lecturer', male: 5, female: 0},
+        {group: 'Associate Professor', male: 6, female: 1},
+        {group: 'Professor', male: 4, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoOPsychology = [
+        {group: 'Research Fellow', male: 4, female: 4},
+        {group: 'Lecturer', male: 4, female: 9},
+        {group: 'Associate Professor', male: 1, female: 0},
+        {group: 'Professor', male: 8, female: 3},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+      var UoOSports = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 5, female: 8},
+        {group: 'Associate Professor', male: 4, female: 2},
+        {group: 'Professor', male: 3, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoOZoo = [
+        {group: 'Research Fellow', male: 6, female: 6},
+        {group: 'Lecturer', male: 4, female: 4},
+        {group: 'Associate Professor', male: 3, female: 2},
+        {group: 'Professor', male: 10, female: 2},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      
+      // University of Waikato
+      var UoWBiology = [
+        {group: 'Research Fellow', male: 7, female: 1},
+        {group: 'Lecturer', male: 8, female: 3},
+        {group: 'Associate Professor', male: 4, female: 1},
+        {group: 'Professor', male: 10, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoWChemistry = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 3, female: 1},
+        {group: 'Associate Professor', male: 1, female: 1},
+        {group: 'Professor', male: 1, female: 0},
+        {group: 'Emeritus Professor', male: 3, female: 0}
+      ];
+      var UoWCompSci = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 15, female: 3},
+        {group: 'Associate Professor', male: 6, female: 1},
+        {group: 'Professor', male: 3, female: 1},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoWEarth = [
+        {group: 'Research Fellow', male: 4, female: 1},
+        {group: 'Lecturer', male: 4, female: 3},
+        {group: 'Associate Professor', male: 1, female: 1},
+        {group: 'Professor', male: 3, female: 0},
+        {group: 'Emeritus Professor', male: 4, female: 0}
+      ];
+      var UoWEngin = [
+        {group: 'Research Fellow', male: 1, female: 1},
+        {group: 'Lecturer', male: 12, female: 1},
+        {group: 'Associate Professor', male: 3, female: 0},
+        {group: 'Professor', male: 3, female: 3},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoWMaths = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 6, female: 0},
+        {group: 'Associate Professor', male: 2, female: 0},
+        {group: 'Professor', male: 3, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      var UoWStats = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 4, female: 1},
+        {group: 'Associate Professor', male: 0, female: 0},
+        {group: 'Professor', male: 0, female: 0},
+        {group: 'Emeritus Professor', male: 0, female: 0}
+      ];
+      
+      // Victoria University of Waikato
+      var VuWBiology = [
+        {group: 'Research Fellow', male: 7, female: 3},
+        {group: 'Lecturer', male: 11, female: 9},
+        {group: 'Associate Professor', male: 8, female: 2},
+        {group: 'Professor', male: 8, female: 2},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+      var VuWChemistry = [
+        {group: 'Research Fellow', male: 3, female: 0},
+        {group: 'Lecturer', male: 5, female: 5},
+        {group: 'Associate Professor', male: 3, female: 0},
+        {group: 'Professor', male: 2, female: 1},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+      var VuWEarth = [
+        {group: 'Research Fellow', male: 7, female: 3},
+        {group: 'Lecturer', male: 9, female: 8},
+        {group: 'Associate Professor', male: 9, female: 0},
+        {group: 'Professor', male: 10, female: 2},
+        {group: 'Emeritus Professor', male: 5, female: 0}
+      ];
+      var VuWMaths = [
+        {group: 'Research Fellow', male: 1, female: 0},
+        {group: 'Lecturer', male: 6, female: 1},
+        {group: 'Associate Professor', male: 2, female: 0},
+        {group: 'Professor', male: 4, female: 0},
+        {group: 'Emeritus Professor', male: 1, female: 0}
+      ];
+      var VuWPhysics = [
+        {group: 'Research Fellow', male: 8, female: 3},
+        {group: 'Lecturer', male: 3, female: 3},
+        {group: 'Associate Professor', male: 3, female: 1},
+        {group: 'Professor', male: 3, female: 0},
+        {group: 'Emeritus Professor', male: 2, female: 0}
+      ];
+      var VuWPsychology = [
+        {group: 'Research Fellow', male: 0, female: 6},
+        {group: 'Lecturer', male: 5, female: 6},
+        {group: 'Associate Professor', male: 4, female: 2},
+        {group: 'Professor', male: 7, female: 3},
+        {group: 'Emeritus Professor', male: 1, female: 0}
+      ];
+      var VuWStats = [
+        {group: 'Research Fellow', male: 0, female: 0},
+        {group: 'Lecturer', male: 5, female: 2},
+        {group: 'Associate Professor', male: 0, female: 2},
+        {group: 'Professor', male: 1, female: 0},
+        {group: 'Emeritus Professor', male: 1, female: 1}
+      ];
+
+    // CREATE SVG
+    var svg = d3.select('body')
+      .append('svg')
+      .attr('width', margin.left + w + margin.right)
+      .attr('height', margin.top + h + margin.bottom)
+      // ADD A GROUP FOR THE SPACE WITHIN THE MARGINS
+      .append('g')
+      .attr('transform', translation(margin.left, margin.top));
+
+    svg.call(tipM);
+    svg.call(tipF);
+    svg.call(tipMpercent);
+    svg.call(tipFpercent);
+
+    function translation(x,y) {
+      return 'translate(' + x + ',' + y + ')';
+    }
+      
+    function updateraw(exampleData) {
+
+      // find the maximum data value on either side since this will be shared by both of the x-axes
+      var maxValue = Math.max(
+        d3.max(exampleData, function(d) { return d.male; }),
+        d3.max(exampleData, function(d) { return d.female; })
+      );
+
+      svg.append("text")
+          .attr("x", (w/2)) 
+          .attr("y", "-11px")            
+          .attr("text-anchor", "middle")  
+          .style("font-size", "18px") 
+          .text("Career Progression in "+ "University Departments" +"");
+
+      // SET UP SCALES
+        
+      // the xScale goes from 0 to the width of a region, it will be reversed for the left x-axis
+      var xScale = d3.scale.linear()
+        .domain([0, maxValue])
+        .range([0, regionWidth])
+        .nice();
+
+      var xScaleLeft = d3.scale.linear()
+        .domain([0, maxValue])
+        .range([regionWidth, 0]);
+
+      var xScaleRight = d3.scale.linear()
+        .domain([0, maxValue])
+        .range([0, regionWidth]);
+
+      var yScale = d3.scale.ordinal()
+        .domain(exampleData.map(function(d) { return d.group; }))
+        .rangeRoundBands([h,0], 0.1);
+
+
+      // SET UP AXES
+      var yAxisLeft = d3.svg.axis()
+        .scale(yScale)
+        .orient('right')
+        .tickSize(4,0)
+        .tickPadding(margin.middle-4);
+
+      var yAxisRight = d3.svg.axis()
+        .scale(yScale)
+        .orient('left')
+        .tickSize(4,0)
+        .tickFormat('');
+
+      var xAxisRight = d3.svg.axis()
+        .scale(xScale)
+        .orient('bottom')
+        .tickFormat(d3.format("d"));
+
+      var xAxisLeft = d3.svg.axis()
+        // REVERSE THE X-AXIS SCALE ON THE LEFT SIDE BY REVERSING THE RANGE
+        .scale(xScale.copy().range([pointA, 0]))
+        .orient('bottom')
+        .tickFormat(d3.format("d"));
+
+      // MAKE GROUPS FOR EACH SIDE OF CHART
+      // scale(-1,1) is used to reverse the left side so the bars grow left instead of right
+      var leftBarGroup = svg.append('g')
+        .attr('transform', translation(pointA, 0) + 'scale(-1,1)');
+      var rightBarGroup = svg.append('g')
+        .attr('transform', translation(pointB, 0));
+
+      // DRAW AXES
+      svg.append('g')
+        .attr('class', 'axis y left')
+        .attr('transform', translation(pointA, 0))
+        .call(yAxisLeft)
+        .selectAll('text')
+        .style('text-anchor', 'middle');
+
+      svg.append('g')
+        .attr('class', 'axis y right')
+        .attr('transform', translation(pointB, 0))
+        .call(yAxisRight);
+
+      svg.append('g')
+        .attr('class', 'axis x left')
+        .attr('transform', translation(0, h))
+        .call(xAxisLeft);
+
+      svg.append('g')
+        .attr('class', 'axis x right')
+        .attr('transform', translation(pointB, h))
+        .call(xAxisRight);
+
+      // DRAW BARS
+      leftBarGroup.selectAll('.bar.left')
+        .data(exampleData)
+        .enter().append('rect')
+          .attr('class', 'bar left')
+          .attr('x', 0)
+          .attr('y', function(d) { return yScale(d.group); })
+          .attr('width', function(d) { return xScale(d.male); })
+          .attr('height', yScale.rangeBand())
+          .on('mouseover', tipM.show)
+          .on('mouseout', tipM.hide);
+
+      rightBarGroup.selectAll('.bar.right')
+        .data(exampleData)
+        .enter().append('rect')
+          .attr('class', 'bar right')
+          .attr('x', 0)
+          .attr('y', function(d) { return yScale(d.group); })
+          .attr('width', function(d) { return xScale(d.female); })
+          .attr('height', yScale.rangeBand())
+          .on('mouseover', tipF.show)
+          .on('mouseout', tipF.hide);
+    };
+
+    function updatepercent(exampleData) {
+
+      // find the maximum data value on either side since this will be shared by both of the x-axes
+      var maxValue = Math.max(
+        d3.max(exampleData, function(d) { return (1); }),
+        d3.max(exampleData, function(d) { return (1); })
+      );
+
+
+      // Graph title
+      svg.append("text")
+          .attr("x", (w/2)) 
+          .attr("y", "-11px")            
+          .attr("text-anchor", "middle")  
+          .style("font-size", "18px") 
+          .text("Career Progression in "+ "University Departments" +"");
+
+      // SET UP SCALES
+        
+      // the xScale goes from 0 to the width of a region, it will be reversed for the left x-axis
+      var xScale = d3.scale.linear()
+        .domain([0, maxValue])
+        .range([0, regionWidth])
+        .nice();
+
+      var xScaleLeft = d3.scale.linear()
+        .domain([0, maxValue])
+        .range([regionWidth, 0]);
+
+      var xScaleRight = d3.scale.linear()
+        .domain([0, maxValue])
+        .range([0, regionWidth]);
+
+      var yScale = d3.scale.ordinal()
+        .domain(exampleData.map(function(d) { return d.group; }))
+        .rangeRoundBands([h,0], 0.1);
+
+
+      // SET UP AXES
+      var yAxisLeft = d3.svg.axis()
+        .scale(yScale)
+        .orient('right')
+        .tickSize(4,0)
+        .tickPadding(margin.middle-4);
+
+      var yAxisRight = d3.svg.axis()
+        .scale(yScale)
+        .orient('left')
+        .tickSize(4,0)
+        .tickFormat('');
+
+      var xAxisRight = d3.svg.axis()
+        .scale(xScale)
+        .orient('bottom')
+        .tickFormat(d3.format("%"));
+
+      var xAxisLeft = d3.svg.axis()
+        // REVERSE THE X-AXIS SCALE ON THE LEFT SIDE BY REVERSING THE RANGE
+        .scale(xScale.copy().range([pointA, 0]))
+        .orient('bottom')
+        .tickFormat(d3.format("%"));
+
+      // MAKE GROUPS FOR EACH SIDE OF CHART
+      // scale(-1,1) is used to reverse the left side so the bars grow left instead of right
+      var leftBarGroup = svg.append('g')
+        .attr('transform', translation(pointA, 0) + 'scale(-1,1)');
+      var rightBarGroup = svg.append('g')
+        .attr('transform', translation(pointB, 0));
+
+      // DRAW AXES
+      svg.append('g')
+        .attr('class', 'axis y left')
+        .attr('transform', translation(pointA, 0))
+        .call(yAxisLeft)
+        .selectAll('text')
+        .style('text-anchor', 'middle');
+
+      svg.append('g')
+        .attr('class', 'axis y right')
+        .attr('transform', translation(pointB, 0))
+        .call(yAxisRight);
+
+      svg.append('g')
+        .attr('class', 'axis x left')
+        .attr('transform', translation(0, h))
+        .call(xAxisLeft);
+
+      svg.append('g')
+        .attr('class', 'axis x right')
+        .attr('transform', translation(pointB, h))
+        .call(xAxisRight);
+
+      // DRAW BARS
+      leftBarGroup.selectAll('.bar.left')
+        .data(exampleData)
+        .enter().append('rect')
+          .attr('class', 'bar left')
+          .attr('x', 0)
+          .attr('y', function(d) { return yScale(d.group); })
+          .attr('width', function(d) { return xScale(d.male/Math.max(d.male+d.female,0.1)); })
+          .attr('height', yScale.rangeBand())
+          .on('mouseover', tipMpercent.show)
+          .on('mouseout', tipMpercent.hide);;
+
+      rightBarGroup.selectAll('.bar.right')
+        .data(exampleData)
+        .enter().append('rect')
+          .attr('class', 'bar right')
+          .attr('x', 0)
+          .attr('y', function(d) { return yScale(d.group); })
+          .attr('width', function(d) { return xScale(d.female/Math.max(d.male+d.female,0.1)); })
+          .attr('height', yScale.rangeBand())
+          .on('mouseover', tipFpercent.show)
+          .on('mouseout', tipFpercent.hide);;
+    };
+
+    //update(UoABiology);
+    /*function drawRaw() {
+    var exampleData = eval(d3.select('#opts').property('value'));
+    svg.selectAll('*').remove();
+    updateraw(exampleData);
+    };
+
+    function drawPercent() {
+    var exampleData = eval(d3.select('#opts').property('value'));
+    svg.selectAll('*').remove();
+    updatepercent(exampleData);
+    };*/
+
+    var radios = document.querySelectorAll('input[type=radio][name="mode"]');
+    
+    function radiobutton() {
+     if ( this.value === 'raw' ) {
+        var exampleData = eval(d3.select('#opts').property('value'));
+        svg.selectAll('*').remove();
+        updateraw(exampleData);} 
+     else if ( this.value === 'percent' ) {
+        var exampleData = eval(d3.select('#opts').property('value'));
+        svg.selectAll('*').remove();
+        updatepercent(exampleData);}  
+    }
+
+    Array.prototype.forEach.call(radios, function(radio) {
+       radio.addEventListener('change', radiobutton);
+    });
+
+    function optschange(exampleData) {
+      if (d3.select("input").value === 'raw') {
+        svg.selectAll('*').remove();
+        updateraw(exampleData);}
+      else if (d3.select("input").value === 'percent') {
+        svg.selectAll('*').remove();
+        updatepercent(exampleData);}
+    }
+
+    d3.select('#opts')
+    .on('change', function() {
+    var exampleData = eval(d3.select(this).property('value'));
+    svg.selectAll('*').remove();
+    optschange(exampleData);
+    });
+
+
+
+    // handle on click event
+    /*d3.select('#opts')
+    .on('change', function() {
+    var exampleData = eval(d3.select(this).property('value'));
+    svg.selectAll('*').remove();
+    updatepercent(exampleData)});
+
+
+    // Enable mode buttons.
+    d3.selectAll("#data-controls input[name=mode]").on("change", function() {
+      svg.call(svg.duration(0).mode(this.value));
+    });*/
+
+    </script>
+  </body>
+</html>
