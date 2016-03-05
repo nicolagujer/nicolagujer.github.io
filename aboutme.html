@@ -63,9 +63,11 @@
 					<h2 id="contact">Contact Me</h2>
 					<form action="http://formspree.io/nicola.gujer@icloud.com" method="POST">
 						<input type="text" name="name" placeholder="Name"><br>
-					  	<input type="email" name="_replyto" placeholder="Email"><br>
+					  	<input type="email" name="_replyto" placeholder="Your Email"><br>
 					  	<textarea name="body" placeholder="Message"></textarea><br>
 					  	<input type="submit" value="Send">
+					  	<input type="hidden" name="_next" value="thankyou.html" />
+					  	<input type="text" name="_gotcha" style="display:none" />
 					</form>
 				</div>
 			</section>
