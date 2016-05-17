@@ -128,7 +128,7 @@
     </select></p>
 
     <p>
-      <input name="mode" type="radio" value="raw" id="raw" ><label for="data-raw"> Raw data</label>
+      <input name="mode" type="radio" value="raw" id="raw" checked><label for="data-raw"> Raw data</label>
       <input name="mode" type="radio" value="percent" id="percent" ><label for="data-percent"> Percentage</label>
     </p>
 
@@ -698,6 +698,7 @@
     updatepercent(exampleData);
     };*/
 
+    //MY OLD CODE
     var radios = document.querySelectorAll('input[type=radio][name="mode"]');
     
     function radiobutton() {
@@ -715,7 +716,7 @@
        radio.addEventListener('change', radiobutton);
     });
 
-    function optschange(exampleData) {
+    /*function optschange(exampleData) {
       if (d3.select("input").value === 'raw') {
         svg.selectAll('*').remove();
         updateraw(exampleData);}
@@ -729,7 +730,7 @@
     var exampleData = eval(d3.select(this).property('value'));
     svg.selectAll('*').remove();
     optschange(exampleData);
-    });
+    }); */
 
 
 
@@ -746,16 +747,24 @@
       svg.call(svg.duration(0).mode(this.value));
     });*/
 
+    d3.select('#opts').on('change', myGenericUpdateEvent);
+
+    function myGenericUpdateEvent(exampleData) {
+        var selectedRadio = document.querySelector('input[type=radio][name="mode"][checked]');
+        if ( selectedRadio.value === 'raw' ) {
+          d3.select('#opts')
+          .on('change', function() {
+          var exampleData = eval(d3.select(this).property('value'));
+          svg.selectAll('*').remove();
+          updateraw(exampleData)});} 
+        else {
+           d3.select('#opts')
+          .on('change', function() {
+          var exampleData = eval(d3.select(this).property('value'));
+          svg.selectAll('*').remove();
+          updatepercent(exampleData)});}
+    }
+
     </script>
-    <script>
-        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-        ga('create', 'UA-74731768-1', 'auto');
-        ga('send', 'pageview');
-
-      </script>
   </body>
 </html>
