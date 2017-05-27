@@ -1005,7 +1005,8 @@
 
 	#banner {
 		background-color: #666666;
-		background-image: url("../Images/banner2.jpeg");
+		/*background-image: url("../Images/banner2.jpeg");*/
+		background-image: url("../Images/KaiIwiLakes.png");
 		background-size: cover;
 		background-position: center center;
 		background-repeat: no-repeat;
